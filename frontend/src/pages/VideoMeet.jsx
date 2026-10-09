@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import io from "socket.io-client";
 import { Badge, IconButton, TextField } from '@mui/material';
 import { Button } from '@mui/material';
@@ -23,7 +25,10 @@ const peerConfigConnections = {
     ]
 }
 
+
 export default function VideoMeetComponent() {
+
+    const navigate = useNavigate();
 
     var socketRef = useRef();
     let socketIdRef = useRef();
@@ -31,10 +36,8 @@ export default function VideoMeetComponent() {
     let localVideoref = useRef();
 
     let [videoAvailable, setVideoAvailable] = useState(true);
-
     let [audioAvailable, setAudioAvailable] = useState(true);
 
-    let [video, setVideo] = useState([]);
 
     let [audio, setAudio] = useState();
 
@@ -400,13 +403,37 @@ export default function VideoMeetComponent() {
         setScreen(!screen);
     }
 
-    let handleEndCall = () => {
-        try {
-            let tracks = localVideoref.current.srcObject.getTracks()
-            tracks.forEach(track => track.stop())
-        } catch (e) { }
-        window.location.href = "/"
+    
+let handleEndCall = () => {
+    // Stop camera and microphone
+    if (window.localStream) {
+        window.localStream.getTracks().forEach((track) => {
+            track.stop();
+        });
+        window.localStream = null;
     }
+
+    // Close all peer connections
+    Object.keys(connections).forEach((id) => {
+        if (connections[id]) {
+            connections[id].close();
+            delete connections[id];
+        }
+    });
+
+    // Disconnect socket
+    if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+    }
+
+    // Clear remote videos
+    setVideos([]);
+    videoRef.current = [];
+
+    // Go to Home page
+    window.location.href = "/home";
+};
 
     let openChat = () => {
         setModal(true);
